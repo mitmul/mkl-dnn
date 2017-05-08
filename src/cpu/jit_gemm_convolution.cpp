@@ -14,6 +14,7 @@
 * limitations under the License.
 *******************************************************************************/
 
+#include "mkl_cblas.h"
 #include "mkldnn_types.h"
 
 #include "c_types_map.hpp"
@@ -124,8 +125,11 @@ void jit_gemm_convolution_bwd_data_t::execute_backward_data() {
             const data_t *_weights = weights + g * weights_g_size;
             data_t *_col = this->ws + ithr * jcp.ic * jcp.ks * jcp.os;
 
-            sgemm_->sgemm("N", "T", &M, &N, &K, &one, _diff_dst, &M,
-                _weights, &N, &zero, jcp.need_im2col ? _col : _diff_src, &M);
+            // sgemm_->sgemm("N", "T", &M, &N, &K, &one, _diff_dst, &M,
+            //     _weights, &N, &zero, jcp.need_im2col ? _col : _diff_src, &M);
+            cblas_sgemm(CblasColMajor, CblasNoTrans, CblasTrans, M, N, K, one,
+                _diff_dst, M, _weights, N, zero,
+                jcp.need_im2col ? _col : _diff_src, M);
             if (jcp.need_im2col)
                 jit_gemm_convolution_utils::col2im(jcp, _col, _diff_src);
             nd_iterator_step(g, jcp.ngroups, n, jcp.mb);
